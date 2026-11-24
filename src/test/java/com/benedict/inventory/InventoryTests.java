@@ -34,6 +34,9 @@ public final class InventoryTests {
         run("Total value adds up every product", InventoryTests::totalValue);
         run("Invalid product details are rejected", InventoryTests::validation);
         run("Saving and loading keeps products, commas and history", InventoryTests::roundTrip);
+        run("Stock value is grouped by category, largest first", InventoryTests::valueByCategory);
+        run("Reorder plan tops low stock up to twice the reorder level", InventoryTests::reorderPlan);
+        run("Reorder plan exports as CSV with a total", InventoryTests::reorderCsv);
 
         System.out.println();
         System.out.println(passed + " passed, " + failures.size() + " failed");
@@ -164,5 +167,39 @@ public final class InventoryTests {
 
     private static Product product(String sku, int qty, int reorder, String price) {
         return new Product(sku, "Item " + sku, "Test", qty, reorder, new BigDecimal(price));
+    }
+
+    private static void valueByCategory() {
+        Inventory inv = new Inventory(FIXED);
+        inv.addProduct(new Product("A", "Pens", "Stationery", 10, 2, new BigDecimal("2.00")));
+        inv.addProduct(new Product("B", "Paper", "printing", 5, 2, new BigDecimal("10.00")));
+        inv.addProduct(new Product("C", "Books", "stationery", 4, 2, new BigDecimal("5.00")));
+        var totals = inv.valueByCategory();
+        check(totals.size() == 2, "categories should merge regardless of case, got " + totals.keySet());
+        check(totals.keySet().iterator().next().equalsIgnoreCase("printing"), "printing (50) should come before stationery (40), got " + totals);
+        check(totals.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add).compareTo(new BigDecimal("90.00")) == 0, "totals should add up to 90");
+    }
+
+    private static void reorderPlan() {
+        Inventory inv = new Inventory(FIXED);
+        inv.addProduct(new Product("A", "Toner", "Printing", 3, 5, new BigDecimal("400.00")));
+        inv.addProduct(new Product("B", "Cord", "Electronics", 0, 4, new BigDecimal("95.00")));
+        inv.addProduct(new Product("C", "Books", "Stationery", 50, 10, new BigDecimal("6.50")));
+        var plan = inv.reorderPlan();
+        check(plan.size() == 2, "only low stock products should be planned, got " + plan.size());
+        check(plan.get(0).product().getSku().equals("B") && plan.get(0).quantity() == 8, "empty cord should order 8 to reach 2 x 4");
+        check(plan.get(1).quantity() == 7 && plan.get(1).cost().compareTo(new BigDecimal("2800.00")) == 0, "toner should order 7 costing 2800");
+    }
+
+    private static void reorderCsv() throws Exception {
+        Inventory inv = new Inventory(FIXED);
+        inv.addProduct(new Product("A", "Toner, black", "Printing", 3, 5, new BigDecimal("400.00")));
+        Path file = Files.createTempFile("reorder", ".csv");
+        CsvInventoryStore.writeReorderPlan(file, inv.reorderPlan());
+        List<String> lines = Files.readAllLines(file);
+        check(lines.size() == 3, "header, one line and a total expected, got " + lines.size());
+        check(lines.get(1).contains("\"Toner, black\""), "names with commas should be quoted: " + lines.get(1));
+        check(lines.get(2).endsWith("2800.00"), "total should be 2800.00: " + lines.get(2));
+        Files.deleteIfExists(file);
     }
 }

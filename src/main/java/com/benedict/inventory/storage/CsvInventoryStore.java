@@ -104,4 +104,19 @@ public class CsvInventoryStore {
         Files.write(temp, lines, StandardCharsets.UTF_8);
         Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
     }
+
+    /** Writes a reorder plan as a CSV a supplier or a spreadsheet can read. */
+    public static void writeReorderPlan(Path file, java.util.List<com.benedict.inventory.service.Inventory.ReorderLine> plan) throws IOException {
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        lines.add(Csv.joinLine(java.util.List.of("SKU", "Product", "Category", "In stock", "Reorder at", "Order", "Unit price", "Cost")));
+        java.math.BigDecimal total = java.math.BigDecimal.ZERO;
+        for (var line : plan) {
+            var p = line.product();
+            lines.add(Csv.joinLine(java.util.List.of(p.getSku(), p.getName(), p.getCategory(), String.valueOf(p.getQuantity()),
+                    String.valueOf(p.getReorderLevel()), String.valueOf(line.quantity()), p.getUnitPrice().toPlainString(), line.cost().toPlainString())));
+            total = total.add(line.cost());
+        }
+        lines.add(Csv.joinLine(java.util.List.of("", "Total", "", "", "", "", "", total.toPlainString())));
+        java.nio.file.Files.write(file, lines, java.nio.charset.StandardCharsets.UTF_8);
+    }
 }

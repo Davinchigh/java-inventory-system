@@ -4,6 +4,7 @@ import com.benedict.inventory.model.Product;
 import com.benedict.inventory.service.Inventory;
 import com.benedict.inventory.storage.CsvInventoryStore;
 import com.benedict.inventory.ui.InventoryApp;
+import com.benedict.inventory.ui.Theme;
 
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
@@ -40,7 +41,7 @@ public final class Main {
         }
 
         SwingUtilities.invokeLater(() -> {
-            useSystemLook();
+            useLook();
             new InventoryApp(inventory, store).setVisible(true);
         });
     }
@@ -63,11 +64,18 @@ public final class Main {
         }
     }
 
-    private static void useSystemLook() {
+    /**
+     * The app draws its own look on top of Swing's cross-platform one, so it looks the same on
+     * Windows, macOS and Linux. Start with -Dinventory.theme=dark or =light to override the saved theme.
+     */
+    private static void useLook() {
         try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
         } catch (Exception ignored) {
-            // The default Swing look is fine if the system one isn't available.
+            // The default Swing look is fine if this fails.
         }
+        String forced = System.getProperty("inventory.theme");
+        if (forced != null) Theme.force(forced.equalsIgnoreCase("dark"));
+        else Theme.apply();
     }
 }

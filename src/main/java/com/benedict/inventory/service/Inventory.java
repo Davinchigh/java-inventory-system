@@ -13,6 +13,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.TreeMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeSet;
@@ -118,6 +119,33 @@ public class Inventory {
 
     public int totalUnits() {
         return products.values().stream().mapToInt(Product::getQuantity).sum();
+    }
+
+    /** Stock value per category, largest first. */
+    public Map<String, BigDecimal> valueByCategory() {
+        Map<String, BigDecimal> totals = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        products.values().forEach(p -> totals.merge(p.getCategory(), p.stockValue(), BigDecimal::add));
+        Map<String, BigDecimal> sorted = new LinkedHashMap<>();
+        totals.entrySet().stream()
+                .sorted(Map.Entry.<String, BigDecimal>comparingByValue().reversed())
+                .forEach(e -> sorted.put(e.getKey(), e.getValue()));
+        return sorted;
+    }
+
+    /**
+     * What to reorder: every low stock product, with enough to bring it back up to twice its
+     * reorder level (at least one), and what that will cost at the current unit price.
+     */
+    public List<ReorderLine> reorderPlan() {
+        return lowStock().stream().map(p -> {
+            int target = Math.max(p.getReorderLevel() * 2, 1);
+            int quantity = Math.max(target - p.getQuantity(), 1);
+            return new ReorderLine(p, quantity, p.getUnitPrice().multiply(BigDecimal.valueOf(quantity)));
+        }).toList();
+    }
+
+    /** One line of a reorder plan. */
+    public record ReorderLine(Product product, int quantity, BigDecimal cost) {
     }
 
     public List<StockMovement> history() {
