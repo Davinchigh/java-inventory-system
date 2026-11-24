@@ -2,7 +2,13 @@
 
 A desktop stock manager for a small shop, written in plain Java with Swing.
 
-![The inventory window showing products, stock levels and low stock highlights](docs/screenshot.png)
+![The inventory window: summary cards, the stock table with stock bars and status pills, and a side panel with stock value by category and the latest movements](docs/screenshot.png)
+
+<details><summary>Dark theme</summary>
+
+![The same window in the dark theme](docs/screenshot-dark.png)
+
+</details>
 
 This is a rebuild of an inventory system I made in college. The original code was lost along with my laptop before I'd pushed it to GitHub, so I rewrote it from scratch, keeping the same idea and cleaning up the design.
 
@@ -16,6 +22,11 @@ This is a rebuild of an inventory system I made in college. The original code wa
 * Running totals for products, units and stock value (GH₵)
 * Full history of every stock movement
 * Saves automatically to CSV files you can also open in Excel
+* A **reorder report**: one click saves a CSV of every low stock product, how many to order to get back to twice the reorder level, and what it will cost
+* **Stock value by category** as a bar chart, and the **latest movements** beside the table
+* A stock bar in every row and coloured status pills, so problems stand out at a glance
+* **Light and dark themes** (remembered between sessions), drawn by the app itself so it looks the same on Windows, macOS and Linux
+* Keyboard shortcuts: Ctrl+N add, Ctrl+F search, Ctrl+I stock in, Ctrl+O stock out, Ctrl+R reorder report, Enter edit, Delete remove
 
 ## Run it
 
@@ -42,6 +53,7 @@ src/main/java/com/benedict/inventory/
   service/   Inventory                   the stock list and every change to it
   storage/   CsvInventoryStore, Csv      saving to and loading from CSV
   ui/        InventoryApp, dialogs       the Swing window
+             Theme, Ui                   the colour schemes and hand-drawn components
 src/test/java/.../InventoryTests.java    tests with a tiny built-in harness
 ```
 
